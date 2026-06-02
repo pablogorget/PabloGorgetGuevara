@@ -161,6 +161,9 @@ footer { text-align: center; padding: 24px 60px; border-top: 1px solid var(--bor
   <div class="hero-bg"></div>
   <div class="hero-grid-lines"></div>
   <div class="hero-left">
+    <div class="hero-photo-wrap fade-up">
+      <img src="WhatsApp%20Image%202026-06-02%20at%2016.44.11.jpeg" alt="Pablo Gorget" class="hero-photo">
+    </div>
     <div class="hero-tag fade-up">Disponible para nuevos desafíos</div>
     <h1 class="hero-name fade-up delay-1">Pablo<br>Cristóbal <span class="last">Gorget</span></h1>
     <p class="hero-title fade-up delay-2">Revenue Manager · Pricing Strategist · BI Analyst</p>
@@ -277,9 +280,9 @@ footer { text-align: center; padding: 24px 60px; border-top: 1px solid var(--bor
           <div class="pv-dot" style="background:#28c840"></div>
         </div>
         <div class="pv-kpis">
-          <div class="pv-kpi"><div class="pv-kpi-val">984</div><div class="pv-kpi-lbl">Contratos</div></div>
+          <div class="pv-kpi"><div class="pv-kpi-val">253</div><div class="pv-kpi-lbl">Contratos</div></div>
           <div class="pv-kpi"><div class="pv-kpi-val">$12.5K</div><div class="pv-kpi-lbl">Precio m²</div></div>
-          <div class="pv-kpi"><div class="pv-kpi-val">82%</div><div class="pv-kpi-lbl">Ocupación</div></div>
+          <div class="pv-kpi"><div class="pv-kpi-val">85%</div><div class="pv-kpi-lbl">Ocupación</div></div>
         </div>
         <div class="pv-chart">
           <div class="pv-bar-item" style="height:45%"></div>
@@ -348,7 +351,7 @@ footer { text-align: center; padding: 24px 60px; border-top: 1px solid var(--bor
     <div class="contact-role">Revenue Manager · Pricing Strategist · BI Analyst</div>
     <div class="contact-links">
       <a href="mailto:pablo.gorget@hotmail.com" class="contact-link"><span>✉</span> pablo.gorget@hotmail.com</a>
-      <a href="https://linkedin.com/in/pablogorget" class="contact-link" target="_blank"><span>💼</span> linkedin.com/in/pablogorget</a>
+      <a href="https://www.linkedin.com/in/pablogorget" class="contact-link" target="_blank"><span>💼</span> linkedin.com/in/pablogorget</a>
       <a href="tel:+56950546885" class="contact-link"><span>📱</span> +56 9 5054 6885</a>
       <a href="#" class="contact-link"><span>📍</span> Ñuñoa, Santiago</a>
     </div>
@@ -369,6 +372,29 @@ const barObs = new IntersectionObserver(entries => {
   entries.forEach(e => { if(e.isIntersecting) e.target.style.width = e.target.dataset.w + '%'; });
 }, { threshold: 0.3 });
 bars.forEach(b => barObs.observe(b));
+
+// Animate KPI counters
+function animateCounter(el, target, suffix='', duration=1500) {
+  let start = 0;
+  const step = target / (duration / 16);
+  const timer = setInterval(() => {
+    start += step;
+    if (start >= target) { start = target; clearInterval(timer); }
+    const display = Number.isInteger(target) ? Math.floor(start) : start.toFixed(1);
+    el.innerHTML = display + '<span class="unit">' + suffix + '</span>';
+  }, 16);
+}
+const heroObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if(e.isIntersecting) {
+      heroObs.disconnect();
+      setTimeout(()=>animateCounter(document.querySelector('.kpi-val'), 93, '%'), 300);
+    }
+  });
+}, {threshold: 0.5});
+const heroCard = document.querySelector('.hero-card');
+if(heroCard) heroObs.observe(heroCard);
+
 </script>
 </body>
 </html>
