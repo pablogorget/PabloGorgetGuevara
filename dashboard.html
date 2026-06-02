@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Benchmark de Precios Inmobiliarios – RM</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --navy:#0a1628; --navy2:#0f2040; --accent:#2E86DE; --gold:#c9a84c;
+  --muted:#8a9bb5; --white:#fff; --border:rgba(46,134,222,0.2);
+  --green:#1dd1a1; --red:#ff6b6b;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',sans-serif;background:var(--navy);color:var(--white);min-height:100vh;}
+
+/* HEADER */
+.header{background:#060f1e;border-bottom:2px solid var(--accent);padding:16px 32px;display:flex;justify-content:space-between;align-items:center;}
+.header-left h1{font-size:1.3rem;font-weight:700;color:var(--white);}
+.header-left p{font-size:0.75rem;color:var(--muted);margin-top:2px;}
+.header-badge{background:rgba(46,134,222,0.15);border:1px solid var(--accent);color:var(--accent);padding:6px 14px;border-radius:100px;font-size:0.72rem;font-weight:600;letter-spacing:0.06em;}
+
+/* FILTERS */
+.filters{background:#0c1a2e;border-bottom:1px solid var(--border);padding:12px 32px;display:flex;align-items:center;gap:16px;}
+.filter-label{font-size:0.72rem;color:var(--muted);font-weight:600;letter-spacing:0.08em;text-transform:uppercase;}
+.year-btn{background:rgba(46,134,222,0.08);border:1px solid rgba(46,134,222,0.2);color:var(--muted);padding:6px 20px;border-radius:6px;font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.2s;}
+.year-btn:hover{border-color:var(--accent);color:var(--white);}
+.year-btn.active{background:var(--accent);border-color:var(--accent);color:var(--white);}
+.filter-divider{width:1px;height:24px;background:var(--border);}
+.zona-btn{background:rgba(46,134,222,0.05);border:1px solid rgba(46,134,222,0.15);color:var(--muted);padding:5px 14px;border-radius:100px;font-size:0.75rem;font-weight:500;cursor:pointer;transition:all 0.2s;}
+.zona-btn:hover,.zona-btn.active{background:rgba(46,134,222,0.2);border-color:var(--accent);color:var(--white);}
+
+/* CANVAS */
+.canvas{padding:20px 32px 32px;}
+
+/* KPI CARDS */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px;}
+.kpi-card{background:#0f2040;border:1px solid var(--border);border-radius:12px;padding:20px;position:relative;overflow:hidden;transition:transform 0.2s;}
+.kpi-card:hover{transform:translateY(-2px);}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(to right,var(--accent),var(--gold));}
+.kpi-icon{width:38px;height:38px;border-radius:10px;background:rgba(46,134,222,0.15);display:flex;align-items:center;justify-content:center;font-size:1.1rem;margin-bottom:12px;}
+.kpi-val{font-size:1.8rem;font-weight:700;color:var(--white);line-height:1;}
+.kpi-val span{font-size:1rem;color:var(--gold);}
+.kpi-label{font-size:0.72rem;color:var(--muted);margin-top:6px;}
+.kpi-delta{font-size:0.72rem;font-weight:600;margin-top:8px;}
+.kpi-delta.up{color:var(--green);}
+.kpi-delta.down{color:var(--red);}
+
+/* CHARTS GRID */
+.charts-row{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;margin-bottom:16px;}
+.charts-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;}
+.chart-card{background:#0d1e35;border:1px solid var(--border);border-radius:12px;padding:20px;}
+.chart-title{font-size:0.8rem;font-weight:700;color:var(--white);margin-bottom:4px;}
+.chart-sub{font-size:0.7rem;color:var(--muted);margin-bottom:16px;}
+.chart-wrap{position:relative;}
+
+/* FUNNEL */
+.funnel-wrap{display:flex;flex-direction:column;gap:10px;padding:8px 0;}
+.funnel-step{display:flex;align-items:center;gap:12px;}
+.funnel-label{font-size:0.75rem;color:var(--muted);width:80px;text-align:right;flex-shrink:0;}
+.funnel-bar-wrap{flex:1;background:rgba(46,134,222,0.08);border-radius:4px;height:32px;overflow:hidden;}
+.funnel-bar{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:12px;font-size:0.78rem;font-weight:700;color:#fff;transition:width 0.8s cubic-bezier(0.4,0,0.2,1);}
+.funnel-pct{font-size:0.7rem;color:var(--muted);width:44px;flex-shrink:0;}
+
+/* ZONA TABLE */
+.zona-table{width:100%;border-collapse:collapse;}
+.zona-table th{font-size:0.68rem;color:var(--accent);letter-spacing:0.08em;text-transform:uppercase;padding:8px 10px;text-align:left;border-bottom:1px solid var(--border);}
+.zona-table td{font-size:0.8rem;padding:10px 10px;border-bottom:1px solid rgba(46,134,222,0.06);}
+.zona-table tr:hover td{background:rgba(46,134,222,0.05);}
+.zona-badge{padding:3px 10px;border-radius:100px;font-size:0.68rem;font-weight:600;}
+.badge-c{background:rgba(46,134,222,0.15);color:var(--accent);}
+.badge-o{background:rgba(201,168,76,0.15);color:var(--gold);}
+.badge-s{background:rgba(29,209,161,0.15);color:var(--green);}
+
+/* FOOTER */
+.dash-footer{background:#060f1e;border-top:1px solid var(--border);padding:12px 32px;display:flex;justify-content:space-between;align-items:center;}
+.dash-footer span{font-size:0.72rem;color:var(--muted);}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>Benchmark de Precios Inmobiliarios – RM</h1>
+    <p>Análisis exploratorio de precios, tipologías y superficie · Datos simulados</p>
+  </div>
+  <div class="header-badge">Power BI · Power Query · Data Analytics</div>
+</div>
+
+<div class="filters">
+  <span class="filter-label">Año</span>
+  <button class="year-btn" onclick="setYear('all')">Todos</button>
+  <button class="year-btn" onclick="setYear('2024')">2024</button>
+  <button class="year-btn" onclick="setYear('2025')">2025</button>
+  <button class="year-btn active" onclick="setYear('2026')">2026</button>
+  <div class="filter-divider"></div>
+  <span class="filter-label">Zona</span>
+  <button class="zona-btn active" onclick="setZona('all')">Todas</button>
+  <button class="zona-btn" onclick="setZona('Centro')">Centro</button>
+  <button class="zona-btn" onclick="setZona('Oriente')">Oriente</button>
+  <button class="zona-btn" onclick="setZona('Sur')">Sur</button>
+</div>
+
+<div class="canvas">
+  <!-- KPIs -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-icon">📋</div>
+      <div class="kpi-val" id="kpi-contratos">253</div>
+      <div class="kpi-label">Total Contratos</div>
+      <div class="kpi-delta up" id="kpi-contratos-delta">↑ +64% vs 2024</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">💰</div>
+      <div class="kpi-val" id="kpi-precio">14.921<span> $/m²</span></div>
+      <div class="kpi-label">Precio Promedio m²</div>
+      <div class="kpi-delta up" id="kpi-precio-delta">↑ +13.8% vs 2024</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">🏠</div>
+      <div class="kpi-val" id="kpi-ocup">85.0<span>%</span></div>
+      <div class="kpi-label">Ocupación</div>
+      <div class="kpi-delta up" id="kpi-ocup-delta">↑ +3.1pp vs 2024</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">🎯</div>
+      <div class="kpi-val" id="kpi-ticket">791K<span> $</span></div>
+      <div class="kpi-label">Ticket Promedio</div>
+      <div class="kpi-delta up" id="kpi-ticket-delta">↑ +18.6% vs 2024</div>
+    </div>
+  </div>
+
+  <!-- Row 1: Evolutivo + Tipología -->
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-title">N° Contratos por Mes</div>
+      <div class="chart-sub">Evolución mensual de arriendos · tendencia al alza 2024–2026</div>
+      <div class="chart-wrap"><canvas id="chartEvo" height="200"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Distribución por Tipología</div>
+      <div class="chart-sub">Participación de mercado por tipo de unidad</div>
+      <div class="chart-wrap"><canvas id="chartTipo" height="200"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Row 2: Precio evolutivo + Zona + Funnel -->
+  <div class="charts-row-3">
+    <div class="chart-card">
+      <div class="chart-title">Precio Promedio m² por Mes</div>
+      <div class="chart-sub">Evolución de precios en el tiempo</div>
+      <div class="chart-wrap"><canvas id="chartPrecio" height="220"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Contratos por Zona RM</div>
+      <div class="chart-sub">Distribución geográfica del mercado</div>
+      <div class="chart-wrap"><canvas id="chartZona" height="220"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Funnel Comercial</div>
+      <div class="chart-sub" id="funnel-sub">Leads → Contratos · año seleccionado</div>
+      <div class="funnel-wrap" id="funnelWrap"></div>
+    </div>
+  </div>
+
+  <!-- Row 3: Tabla Zona + Precio por zona -->
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-title">Precio Promedio m² por Zona</div>
+      <div class="chart-sub">Comparativo de precios entre zonas</div>
+      <div class="chart-wrap"><canvas id="chartZonaPrecio" height="180"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Resumen por Zona</div>
+      <div class="chart-sub">Contratos y precio promedio por zona RM</div>
+      <table class="zona-table">
+        <thead>
+          <tr><th>Zona</th><th>Contratos</th><th>Precio m²</th><th>% Mercado</th></tr>
+        </thead>
+        <tbody id="zonaTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="dash-footer">
+  <span>Pablo Cristóbal Gorget Guevara · Pricing & Revenue Management</span>
+  <span>Datos 100% simulados · Fines educativos</span>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────
+const DATA = {
+  kpis: {
+    all:  {contratos:984,  precio_m2:13814, ocupacion:81.5, ticket:716000},
+    '2024':{contratos:276, precio_m2:13114, ocupacion:81.9, ticket:667111},
+    '2025':{contratos:455, precio_m2:13695, ocupacion:79.3, ticket:709067},
+    '2026':{contratos:253, precio_m2:14921, ocupacion:85.0, ticket:791349},
+  },
+  evo: {
+    '2024': {labels:['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'], contratos:[20,21,24,25,26,26,25,25,23,22,20,19], precio:[11786,11853,14091,13054,13104,14673,13966,13240,13679,11865,13640,11554]},
+    '2025': {labels:['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'], contratos:[33,36,38,41,43,44,43,40,38,35,32,32], precio:[13689,12303,15462,13406,12720,12211,13343,16578,13309,13745,14416,13450]},
+    '2026': {labels:['Ene','Feb','Mar','Abr','May'],                                          contratos:[44,46,51,55,57],                      precio:[14659,15150,15072,14483,15230]},
+    all:    {labels:['E24','F24','M24','A24','M24','J24','J24','A24','S24','O24','N24','D24','E25','F25','M25','A25','M25','J25','J25','A25','S25','O25','N25','D25','E26','F26','M26','A26','M26'],
+             contratos:[20,21,24,25,26,26,25,25,23,22,20,19,33,36,38,41,43,44,43,40,38,35,32,32,44,46,51,55,57],
+             precio:[11786,11853,14091,13054,13104,14673,13966,13240,13679,11865,13640,11554,13689,12303,15462,13406,12720,12211,13343,16578,13309,13745,14416,13450,14659,15150,15072,14483,15230]}
+  },
+  zona: {
+    all:   {Centro:{c:468,p:12860}, Oriente:{c:334,p:18445}, Sur:{c:182,p:9380}},
+    '2024':{Centro:{c:140,p:11800}, Oriente:{c:83,p:17800},  Sur:{c:53,p:9100}},
+    '2025':{Centro:{c:213,p:12126}, Oriente:{c:152,p:18355}, Sur:{c:90,p:9539}},
+    '2026':{Centro:{c:115,p:13620}, Oriente:{c:99,p:18960},  Sur:{c:39,p:9800}},
+  },
+  tipo: {labels:['1D1B','2D1B','2D2B','Studio','3D2B'], vals:[288,268,203,146,79]},
+  funnel: {
+    all:   [6543,2259,1154,380],
+    '2024':[2459,872,445,143],
+    '2025':[2782,942,490,164],
+    '2026':[1302,445,219,73],
+  }
+};
+
+let currentYear = '2026';
+let currentZona = 'all';
+let chartEvo, chartPrecio, chartTipo, chartZona, chartZonaPrecio;
+
+const C = {
+  accent:'#2E86DE', gold:'#c9a84c', green:'#1dd1a1',
+  red:'#ff6b6b', muted:'rgba(138,155,181,0.6)',
+  grid:'rgba(46,134,222,0.08)', text:'#8a9bb5'
+};
+
+Chart.defaults.color = C.text;
+Chart.defaults.font.family = 'Segoe UI';
+
+function fmtNum(n){
+  if(n>=1000000) return (n/1000000).toFixed(1)+'M';
+  if(n>=1000) return Math.round(n/1000)+'K';
+  return n.toLocaleString('es-CL');
+}
+
+function setYear(yr){
+  currentYear = yr;
+  document.querySelectorAll('.year-btn').forEach(b=>{
+    b.classList.toggle('active', b.textContent === (yr==='all'?'Todos':yr));
+  });
+  updateAll();
+}
+
+function setZona(z){
+  currentZona = z;
+  document.querySelectorAll('.zona-btn').forEach(b=>{
+    b.classList.toggle('active', b.textContent === (z==='all'?'Todas':z));
+  });
+  updateAll();
+}
+
+function updateAll(){
+  updateKPIs();
+  updateEvo();
+  updateTipo();
+  updateZona();
+  updateFunnel();
+  updateZonaTable();
+  updateZonaPrecio();
+}
+
+function updateKPIs(){
+  const d = DATA.kpis[currentYear] || DATA.kpis.all;
+  const base = DATA.kpis['2024'];
+  document.getElementById('kpi-contratos').textContent = fmtNum(d.contratos);
+  document.getElementById('kpi-precio').innerHTML = fmtNum(d.precio_m2)+'<span> $/m²</span>';
+  document.getElementById('kpi-ocup').innerHTML = d.ocupacion+'<span>%</span>';
+  document.getElementById('kpi-ticket').innerHTML = fmtNum(d.ticket)+'<span> $</span>';
+  const pctC = ((d.contratos-base.contratos)/base.contratos*100).toFixed(1);
+  const pctP = ((d.precio_m2-base.precio_m2)/base.precio_m2*100).toFixed(1);
+  const pctO = (d.ocupacion-base.ocupacion).toFixed(1);
+  const pctT = ((d.ticket-base.ticket)/base.ticket*100).toFixed(1);
+  const dEl = (id,val,label)=>{
+    const el = document.getElementById(id);
+    const up = parseFloat(val)>=0;
+    el.className = 'kpi-delta '+(up?'up':'down');
+    el.textContent = (up?'↑ +':'↓ ')+val+label;
+  };
+  if(currentYear!=='2024'&&currentYear!=='all'){
+    dEl('kpi-contratos-delta',pctC+'%',' vs 2024');
+    dEl('kpi-precio-delta',pctP+'%',' vs 2024');
+    dEl('kpi-ocup-delta',pctO+'pp',' vs 2024');
+    dEl('kpi-ticket-delta',pctT+'%',' vs 2024');
+  } else {
+    ['kpi-contratos-delta','kpi-precio-delta','kpi-ocup-delta','kpi-ticket-delta'].forEach(id=>{
+      document.getElementById(id).textContent = '';
+    });
+  }
+}
+
+function updateEvo(){
+  const d = DATA.evo[currentYear] || DATA.evo.all;
+  if(chartEvo){chartEvo.destroy();}
+  const ctx = document.getElementById('chartEvo').getContext('2d');
+  chartEvo = new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:d.labels,
+      datasets:[{
+        label:'N° Contratos',
+        data:d.contratos,
+        backgroundColor:'rgba(46,134,222,0.7)',
+        borderColor:C.accent,
+        borderWidth:1,
+        borderRadius:4,
+      }]
+    },
+    options:{
+      responsive:true,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'Contratos: '+ctx.raw}}},
+      scales:{
+        x:{grid:{color:C.grid},ticks:{font:{size:9}}},
+        y:{grid:{color:C.grid},ticks:{font:{size:9}},beginAtZero:true}
+      }
+    }
+  });
+}
+
+function updatePrecio(){
+  const d = DATA.evo[currentYear] || DATA.evo.all;
+  if(chartPrecio){chartPrecio.destroy();}
+  const ctx = document.getElementById('chartPrecio').getContext('2d');
+  const grad = ctx.createLinearGradient(0,0,0,220);
+  grad.addColorStop(0,'rgba(46,134,222,0.3)');
+  grad.addColorStop(1,'rgba(46,134,222,0)');
+  chartPrecio = new Chart(ctx,{
+    type:'line',
+    data:{
+      labels:d.labels,
+      datasets:[{
+        label:'Precio m²',
+        data:d.precio,
+        borderColor:C.gold,
+        backgroundColor:grad,
+        borderWidth:2,
+        pointRadius:3,
+        pointBackgroundColor:C.gold,
+        fill:true,
+        tension:0.4
+      }]
+    },
+    options:{
+      responsive:true,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'$'+ctx.raw.toLocaleString('es-CL')+'/m²'}}},
+      scales:{
+        x:{grid:{color:C.grid},ticks:{font:{size:9}}},
+        y:{grid:{color:C.grid},ticks:{font:{size:9},callback:v=>'$'+Math.round(v/1000)+'K'},beginAtZero:false}
+      }
+    }
+  });
+}
+
+function updateTipo(){
+  if(chartTipo){chartTipo.destroy();}
+  const ctx = document.getElementById('chartTipo').getContext('2d');
+  chartTipo = new Chart(ctx,{
+    type:'doughnut',
+    data:{
+      labels:DATA.tipo.labels,
+      datasets:[{
+        data:DATA.tipo.vals,
+        backgroundColor:['#2E86DE','#54A0FF','#c9a84c','#1dd1a1','#ff6b6b'],
+        borderWidth:0,
+        hoverOffset:8
+      }]
+    },
+    options:{
+      responsive:true,
+      cutout:'65%',
+      plugins:{
+        legend:{position:'right',labels:{font:{size:10},padding:12,boxWidth:12}},
+        tooltip:{callbacks:{label:ctx=>{
+          const total = ctx.dataset.data.reduce((a,b)=>a+b,0);
+          return ctx.label+': '+ctx.raw+' ('+((ctx.raw/total)*100).toFixed(1)+'%)';
+        }}}
+      }
+    }
+  });
+}
+
+function updateZona(){
+  const d = DATA.zona[currentYear] || DATA.zona.all;
+  const labels = Object.keys(d);
+  const vals = labels.map(z=>d[z].c);
+  if(chartZona){chartZona.destroy();}
+  const ctx = document.getElementById('chartZona').getContext('2d');
+  chartZona = new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels,
+      datasets:[{
+        data:vals,
+        backgroundColor:['rgba(46,134,222,0.8)','rgba(201,168,76,0.8)','rgba(29,209,161,0.8)'],
+        borderRadius:6,
+        borderWidth:0
+      }]
+    },
+    options:{
+      responsive:true,
+      indexAxis:'y',
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{color:C.grid},ticks:{font:{size:9}}},
+        y:{grid:{display:false},ticks:{font:{size:10}}}
+      }
+    }
+  });
+}
+
+function updateZonaPrecio(){
+  const d = DATA.zona[currentYear] || DATA.zona.all;
+  const labels = Object.keys(d);
+  const vals = labels.map(z=>d[z].p);
+  if(chartZonaPrecio){chartZonaPrecio.destroy();}
+  const ctx = document.getElementById('chartZonaPrecio').getContext('2d');
+  chartZonaPrecio = new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels,
+      datasets:[{
+        label:'Precio m²',
+        data:vals,
+        backgroundColor:['rgba(46,134,222,0.7)','rgba(201,168,76,0.7)','rgba(29,209,161,0.7)'],
+        borderRadius:6,
+        borderWidth:0
+      }]
+    },
+    options:{
+      responsive:true,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'$'+c.raw.toLocaleString('es-CL')+'/m²'}}},
+      scales:{
+        x:{grid:{display:false}},
+        y:{grid:{color:C.grid},ticks:{callback:v=>'$'+Math.round(v/1000)+'K',font:{size:9}},beginAtZero:true}
+      }
+    }
+  });
+}
+
+function updateFunnel(){
+  const yr = currentYear==='all'?'2025':currentYear;
+  const vals = DATA.funnel[yr];
+  const labels = ['Leads','Entradas','Cotizantes','Contratos'];
+  const colors = ['rgba(46,134,222,0.85)','rgba(201,168,76,0.85)','rgba(84,160,255,0.85)','rgba(29,209,161,0.85)'];
+  const max = vals[0];
+  const wrap = document.getElementById('funnelWrap');
+  document.getElementById('funnel-sub').textContent = `Leads → Contratos · ${yr}`;
+  wrap.innerHTML = labels.map((l,i)=>{
+    const pct = (vals[i]/max*100).toFixed(0);
+    const conv = i===0?'100%':((vals[i]/vals[0]*100).toFixed(1)+'%');
+    return `<div class="funnel-step">
+      <div class="funnel-label">${l}</div>
+      <div class="funnel-bar-wrap">
+        <div class="funnel-bar" style="width:${pct}%;background:${colors[i]}">
+          ${vals[i].toLocaleString('es-CL')}
+        </div>
+      </div>
+      <div class="funnel-pct">${conv}</div>
+    </div>`;
+  }).join('');
+}
+
+function updateZonaTable(){
+  const d = DATA.zona[currentYear] || DATA.zona.all;
+  const total = Object.values(d).reduce((a,z)=>a+z.c,0);
+  const tbody = document.getElementById('zonaTableBody');
+  const bClass = {Centro:'badge-c',Oriente:'badge-o',Sur:'badge-s'};
+  tbody.innerHTML = Object.entries(d).map(([z,v])=>`
+    <tr>
+      <td><span class="zona-badge ${bClass[z]}">${z}</span></td>
+      <td><strong>${v.c}</strong></td>
+      <td>$${v.p.toLocaleString('es-CL')}</td>
+      <td>${(v.c/total*100).toFixed(1)}%</td>
+    </tr>`).join('');
+}
+
+// Init
+document.addEventListener('DOMContentLoaded',()=>{
+  updateKPIs();
+  updateEvo();
+  updatePrecio();
+  updateTipo();
+  updateZona();
+  updateFunnel();
+  updateZonaTable();
+  updateZonaPrecio();
+});
+
+// Hook precio to evo update
+const origUpdateEvo = updateEvo;
+window.updateEvo = function(){origUpdateEvo(); updatePrecio();};
+updateAll();
+</script>
+</body>
+</html>
